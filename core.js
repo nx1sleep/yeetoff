@@ -1,4 +1,3 @@
-// Конфигурация
 const GITHUB_API = 'https://api.github.com/repos/nx1sleep/yeetoff/contents';
 const GITHUB_RAW = 'https://raw.githubusercontent.com/nx1sleep/yeetoff/main';
 
@@ -8,21 +7,19 @@ let levels = {
     ill: []
 };
 
-// Загрузка всех уровней
 async function loadAllLevels() {
     const container = document.getElementById('levelsContainer');
     container.innerHTML = '<div class="loading">Загрузка уровней...</div>';
     
     try {
-        // Загружаем через прокси или raw GitHub (обходим 403)
         await Promise.all([
-            loadLevelsViaRaw('basic'),
-            loadLevelsViaRaw('ill')
+            loadLevelsByType('basic'),
+            loadLevelsByType('ill')
         ]);
         renderLevels();
     } catch (error) {
         console.error('Ошибка:', error);
-        container.innerHTML = '<div class="error">Не удалось загрузить уровни. Попробуйте позже.</div>';
+        container.innerHTML = '<div class="error">Не удалось загрузить уровни</div>';
     }
 }
 
@@ -30,57 +27,50 @@ async function loadLevelsByType(type) {
     levels[type] = [];
     let position = 1;
     
-    // Долбимся пока не получим 404
     while (true) {
         try {
-            const levelTxtUrl = `${GITHUB_RAW}/levels/${type}/${position}/level.txt`;
-            const txtResponse = await fetch(levelTxtUrl);
+            const folderUrl = `${GITHUB_API}/levels/${type}/${position}`;
+            const response = await fetch(folderUrl);
             
-            if (!txtResponse.ok) {
-                // Первая папка не найдена — выходим сразу
+            if (!response.ok) {
                 if (position === 1) {
                     console.log(`Нет папок для ${type}`);
-                    break;
                 }
-                // Дошли до пустой папки — останавливаемся
                 break;
             }
             
-            // Получаем название уровня
-            const levelName = await txtResponse.text();
+            const files = await response.json();
             
-            // Теперь ищем ЛЮБОЙ JSON файл в этой папке
-            // Для этого получаем список файлов через API (но без 403)
-            const apiUrl = `https://api.github.com/repos/nx1sleep/yeetoff/contents/levels/${type}/${position}`;
-            const apiResponse = await fetch(apiUrl);
+            const levelTxtFile = files.find(f => f.name === 'level.txt');
+            if (!levelTxtFile) {
+                position++;
+                continue;
+            }
             
-            if (apiResponse.ok) {
-                const files = await apiResponse.json();
-                // Ищем первый попавшийся JSON
-                const jsonFile = files.find(f => f.name.endsWith('.json'));
-                
-                if (jsonFile) {
-                    levels[type].push({
-                        position: position,
-                        name: levelName.trim(),
-                        filename: jsonFile.name,
-                        downloadUrl: jsonFile.download_url
-                    });
-                    
-                    console.log(`✅ Загружен ${type} #${position}: ${levelName.trim()}`);
-                }
+            const levelTxtResponse = await fetch(levelTxtFile.download_url);
+            const levelName = await levelTxtResponse.text();
+            
+            const jsonFile = files.find(f => f.name.endsWith('.json'));
+            
+            if (jsonFile) {
+                levels[type].push({
+                    position: position,
+                    name: levelName.trim(),
+                    filename: jsonFile.name,
+                    downloadUrl: jsonFile.download_url
+                });
+                console.log(`✅ Загружен ${type} #${position}: ${levelName.trim()}`);
             }
             
             position++;
             
         } catch (error) {
-            console.log(`❌ Ошибка на позиции ${position}, останавливаемся`);
+            console.log(`Ошибка на позиции ${position}, останавливаемся`);
             break;
         }
     }
 }
 
-// Рендер уровней
 function renderLevels() {
     const container = document.getElementById('levelsContainer');
     const currentLevels = levels[currentTab];
@@ -90,7 +80,6 @@ function renderLevels() {
         return;
     }
     
-    // Сортируем по позиции
     currentLevels.sort((a, b) => a.position - b.position);
     
     let html = '<div class="levels-grid">';
@@ -111,11 +100,9 @@ function renderLevels() {
     container.innerHTML = html;
 }
 
-// Скачивание уровня
 async function downloadLevel(url, filename) {
     try {
         const response = await fetch(url);
-        
         if (!response.ok) throw new Error('Файл не найден');
         
         const jsonData = await response.json();
@@ -134,7 +121,6 @@ async function downloadLevel(url, filename) {
     }
 }
 
-// Переключение вкладок
 function switchTab(tab) {
     currentTab = tab;
     
@@ -151,23 +137,16 @@ function switchTab(tab) {
     renderLevels();
 }
 
-// Защита от XSS
 function escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
 }
 
-// Автозагрузка при старте
-window.onload = () => {
-    // Делаем функции глобальными
-    window.app = {
-        switchTab,
-        loadAllLevels
-    };
-    
-    loadAllLevels();
+window.app = {
+    switchTab,
+    loadAllLevels
 };
-
-// Глобальная функция для скачивания (нужна для onclick)
 window.downloadLevel = downloadLevel;
+
+window.onload = loadAllLevels;
