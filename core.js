@@ -1,3 +1,4 @@
+// Конфигурация
 const GITHUB_API = 'https://api.github.com/repos/nx1sleep/yeetoff/contents';
 const GITHUB_RAW = 'https://raw.githubusercontent.com/nx1sleep/yeetoff/main';
 
@@ -7,11 +8,13 @@ let levels = {
     ill: []
 };
 
+// Загрузка всех уровней
 async function loadAllLevels() {
     const container = document.getElementById('levelsContainer');
     container.innerHTML = '<div class="loading">Загрузка уровней...</div>';
     
     try {
+        // Загружаем оба типа
         await Promise.all([
             loadLevelsByType('basic'),
             loadLevelsByType('ill')
@@ -23,12 +26,14 @@ async function loadAllLevels() {
     }
 }
 
+// Загрузка по типу (basic/ill)
 async function loadLevelsByType(type) {
     levels[type] = [];
     let position = 1;
     
     while (true) {
         try {
+            // Получаем содержимое папки через API
             const folderUrl = `${GITHUB_API}/levels/${type}/${position}`;
             const response = await fetch(folderUrl);
             
@@ -36,20 +41,23 @@ async function loadLevelsByType(type) {
                 if (position === 1) {
                     console.log(`Нет папок для ${type}`);
                 }
-                break;
+                break; // Папка не найдена - выходим
             }
             
             const files = await response.json();
             
+            // Ищем level.txt
             const levelTxtFile = files.find(f => f.name === 'level.txt');
             if (!levelTxtFile) {
                 position++;
                 continue;
             }
             
+            // Получаем название уровня
             const levelTxtResponse = await fetch(levelTxtFile.download_url);
             const levelName = await levelTxtResponse.text();
             
+            // Ищем ЛЮБОЙ JSON файл
             const jsonFile = files.find(f => f.name.endsWith('.json'));
             
             if (jsonFile) {
@@ -62,15 +70,16 @@ async function loadLevelsByType(type) {
                 console.log(`✅ Загружен ${type} #${position}: ${levelName.trim()}`);
             }
             
-            position++;
+            position++; // Переходим к следующей папке
             
         } catch (error) {
-            console.log(`Ошибка на позиции ${position}, останавливаемся`);
+            console.log(`❌ Ошибка на позиции ${position}, останавливаемся`);
             break;
         }
     }
 }
 
+// Рендер уровней
 function renderLevels() {
     const container = document.getElementById('levelsContainer');
     const currentLevels = levels[currentTab];
@@ -80,6 +89,7 @@ function renderLevels() {
         return;
     }
     
+    // Сортируем по позиции
     currentLevels.sort((a, b) => a.position - b.position);
     
     let html = '<div class="levels-grid">';
@@ -100,9 +110,11 @@ function renderLevels() {
     container.innerHTML = html;
 }
 
+// Скачивание уровня
 async function downloadLevel(url, filename) {
     try {
         const response = await fetch(url);
+        
         if (!response.ok) throw new Error('Файл не найден');
         
         const jsonData = await response.json();
@@ -121,6 +133,7 @@ async function downloadLevel(url, filename) {
     }
 }
 
+// Переключение вкладок
 function switchTab(tab) {
     currentTab = tab;
     
@@ -137,16 +150,21 @@ function switchTab(tab) {
     renderLevels();
 }
 
+// Защита от XSS
 function escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
 }
 
+// Глобальные функции для HTML
 window.app = {
-    switchTab,
-    loadAllLevels
+    switchTab: switchTab,
+    loadAllLevels: loadAllLevels
 };
 window.downloadLevel = downloadLevel;
 
-window.onload = loadAllLevels;
+// Автозагрузка при старте
+window.onload = function() {
+    loadAllLevels();
+};
