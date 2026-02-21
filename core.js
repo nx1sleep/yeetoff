@@ -24,7 +24,7 @@ async function loadAllLevels() {
     }
 }
 
-// Загрузка через RAW
+// Загрузка через RAW (без API)
 async function loadLevelsByType(type) {
     levels[type] = [];
     let position = 1;
@@ -42,24 +42,19 @@ async function loadLevelsByType(type) {
             
             const levelName = await txtResponse.text();
             
-            // ПОЛУЧАЕМ СПИСОК ФАЙЛОВ ЧЕРЕЗ API (временно, чтобы найти JSON)
-            const apiUrl = `https://api.github.com/repos/nx1sleep/yeetoff/contents/levels/${type}/${position}`;
-            const apiResponse = await fetch(apiUrl);
+            // Проверяем level.json
+            const jsonUrl = `${GITHUB_RAW}/levels/${type}/${position}/level.json`;
+            const jsonResponse = await fetch(jsonUrl, { method: 'HEAD' });
             
-            if (apiResponse.ok) {
-                const files = await apiResponse.json();
-                // Берем ПЕРВЫЙ JSON файл
-                const jsonFile = files.find(f => f.name.endsWith('.json'));
-                
-                if (jsonFile) {
-                    levels[type].push({
-                        position: position,
-                        name: levelName.trim(),
-                        filename: jsonFile.name,
-                        downloadUrl: jsonFile.download_url
-                    });
-                    console.log(`✅ ${type} #${position}: ${levelName.trim()} (${jsonFile.name})`);
-                }
+            if (jsonResponse.ok) {
+                levels[type].push({
+                    position: position,
+                    name: levelName.trim(),
+                    filename: 'level.json', // Оригинальное имя
+                    downloadUrl: jsonUrl,
+                    displayName: levelName.trim() // Для переименования при скачивании
+                });
+                console.log(`✅ ${type} #${position}: ${levelName.trim()}`);
             }
             
             position++;
@@ -90,7 +85,7 @@ function renderLevels() {
             <div class="level-card ${currentTab}" style="animation-delay: ${level.position * 0.05}s">
                 <div class="level-number">#${level.position}</div>
                 <div class="level-name">${escapeHtml(level.name)}</div>
-                <button class="download-btn" onclick="downloadLevel('${level.downloadUrl}', '${level.filename}')">
+                <button class="download-btn" onclick="downloadLevel('${level.downloadUrl}', '${level.name}', '${level.filename}')">
                     Скачать файл уровня
                 </button>
             </div>
@@ -101,8 +96,8 @@ function renderLevels() {
     container.innerHTML = html;
 }
 
-// Скачивание уровня
-async function downloadLevel(url, filename) {
+// Скачивание уровня с переименованием
+async function downloadLevel(url, levelName, originalFilename) {
     try {
         const response = await fetch(url);
         
@@ -111,6 +106,9 @@ async function downloadLevel(url, filename) {
         const jsonData = await response.json();
         const blob = new Blob([JSON.stringify(jsonData, null, 2)], { type: 'application/json' });
         const downloadUrl = URL.createObjectURL(blob);
+        
+        // Создаем имя файла: НазваниеУровня.json (без пробелов)
+        const filename = levelName.replace(/\s+/g, '_') + '.json';
         
         const a = document.createElement('a');
         a.href = downloadUrl;
