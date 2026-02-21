@@ -119,45 +119,46 @@
             animation: fadeIn 0.3s ease forwards;
         }
 
-        .level-card:hover {
-            transform: translateY(-5px);
-            border-color: #e94560;
-            box-shadow: 0 10px 30px rgba(233, 69, 96, 0.3);
+        .level-card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 15px 20px;
+            transition: all 0.3s;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            position: relative;
+            overflow: hidden;
+            animation: fadeIn 0.3s ease forwards;
         }
-
-        .level-card.basic:hover {
-            border-color: #4CAF50;
-            box-shadow: 0 10px 30px rgba(76, 175, 80, 0.3);
-        }
-
+        
         .level-number {
             position: absolute;
-            top: 10px;
+            top: 5px;
             right: 15px;
-            font-size: 48px;
+            font-size: 42px;
             font-weight: 900;
             opacity: 0.1;
             color: #fff;
         }
-
+        
         .level-name {
-            font-size: 28px;
+            font-size: 24px;
             font-weight: bold;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
             color: #fff;
             word-break: break-word;
             padding-right: 40px;
         }
-
+        
         .download-btn {
             display: inline-block;
-            padding: 12px 25px;
+            padding: 8px 20px; /* Уменьшил */
             background: linear-gradient(135deg, #e94560, #ff6b7f);
             color: white;
             text-decoration: none;
-            border-radius: 25px;
+            border-radius: 10px;
             font-weight: 600;
-            font-size: 16px;
+            font-size: 14px;
             transition: all 0.3s;
             border: none;
             cursor: pointer;
@@ -273,7 +274,7 @@
         </div>
 
         <div class="footer">
-            <p>© 2025 YeetOff Community · Уровни загружаются с GitHub</p>
+            <p>© 2026 YeetOff Community · Уровни загружаются с GitHub</p>
         </div>
     </div>
 
