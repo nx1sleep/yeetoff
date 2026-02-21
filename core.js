@@ -1,5 +1,4 @@
-// Конфигурация
-const GITHUB_API = 'https://api.github.com/repos/nx1sleep/yeetoff/contents';
+// Конфигурация - ТОЛЬКО RAW
 const GITHUB_RAW = 'https://raw.githubusercontent.com/nx1sleep/yeetoff/main';
 
 let currentTab = 'basic';
@@ -14,7 +13,6 @@ async function loadAllLevels() {
     container.innerHTML = '<div class="loading">Загрузка уровней...</div>';
     
     try {
-        // Загружаем оба типа
         await Promise.all([
             loadLevelsByType('basic'),
             loadLevelsByType('ill')
@@ -26,54 +24,58 @@ async function loadAllLevels() {
     }
 }
 
-// Загрузка по типу (basic/ill)
+// Загрузка через RAW (без API)
 async function loadLevelsByType(type) {
     levels[type] = [];
     let position = 1;
     
-    while (true) {
+    while (position <= 30) { // Проверим первые 30 папок
         try {
-            // Получаем содержимое папки через API
-            const folderUrl = `${GITHUB_API}/levels/${type}/${position}`;
-            const response = await fetch(folderUrl);
+            // Пробуем скачать level.txt
+            const txtUrl = `${GITHUB_RAW}/levels/${type}/${position}/level.txt`;
+            const txtResponse = await fetch(txtUrl);
             
-            if (!response.ok) {
-                if (position === 1) {
-                    console.log(`Нет папок для ${type}`);
+            if (txtResponse.ok) {
+                // Есть level.txt - значит папка существует
+                const levelName = await txtResponse.text();
+                
+                // Теперь ищем JSON файл (через проверку ссылок)
+                const jsonExtensions = ['.json']; // Можно добавить другие
+                
+                for (const ext of jsonExtensions) {
+                    // Пробуем стандартные имена
+                    const possibleNames = [
+                        `${type}_${position}${ext}`,
+                        `level${ext}`,
+                        `map${ext}`,
+                        `level_${position}${ext}`
+                    ];
+                    
+                    for (const name of possibleNames) {
+                        const jsonUrl = `${GITHUB_RAW}/levels/${type}/${position}/${name}`;
+                        const jsonResponse = await fetch(jsonUrl, { method: 'HEAD' });
+                        
+                        if (jsonResponse.ok) {
+                            levels[type].push({
+                                position: position,
+                                name: levelName.trim(),
+                                filename: name,
+                                downloadUrl: jsonUrl
+                            });
+                            console.log(`✅ ${type} #${position}: ${levelName.trim()} (${name})`);
+                            break;
+                        }
+                    }
+                    
+                    // Если нашли JSON, выходим из цикла расширений
+                    if (levels[type].some(l => l.position === position)) break;
                 }
-                break; // Папка не найдена - выходим
             }
             
-            const files = await response.json();
-            
-            // Ищем level.txt
-            const levelTxtFile = files.find(f => f.name === 'level.txt');
-            if (!levelTxtFile) {
-                position++;
-                continue;
-            }
-            
-            // Получаем название уровня
-            const levelTxtResponse = await fetch(levelTxtFile.download_url);
-            const levelName = await levelTxtResponse.text();
-            
-            // Ищем ЛЮБОЙ JSON файл
-            const jsonFile = files.find(f => f.name.endsWith('.json'));
-            
-            if (jsonFile) {
-                levels[type].push({
-                    position: position,
-                    name: levelName.trim(),
-                    filename: jsonFile.name,
-                    downloadUrl: jsonFile.download_url
-                });
-                console.log(`✅ Загружен ${type} #${position}: ${levelName.trim()}`);
-            }
-            
-            position++; // Переходим к следующей папке
+            position++;
             
         } catch (error) {
-            console.log(`❌ Ошибка на позиции ${position}, останавливаемся`);
+            console.log(`❌ Ошибка на ${type}/${position}, останавливаемся`);
             break;
         }
     }
@@ -89,7 +91,6 @@ function renderLevels() {
         return;
     }
     
-    // Сортируем по позиции
     currentLevels.sort((a, b) => a.position - b.position);
     
     let html = '<div class="levels-grid">';
@@ -157,14 +158,14 @@ function escapeHtml(text) {
     return div.innerHTML;
 }
 
-// Глобальные функции для HTML
+// Глобальные функции
 window.app = {
     switchTab: switchTab,
     loadAllLevels: loadAllLevels
 };
 window.downloadLevel = downloadLevel;
 
-// Автозагрузка при старте
+// Автозагрузка
 window.onload = function() {
     loadAllLevels();
 };
