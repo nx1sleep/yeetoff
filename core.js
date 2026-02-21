@@ -1,6 +1,12 @@
 // Конфигурация
 const GITHUB_RAW = 'https://raw.githubusercontent.com/nx1sleep/yeetoff/main';
 
+// Каунтеры уровней
+const LEVEL_COUNTS = {
+    basic: 3,  // basic имеет 3 уровня
+    ill: 1      // ill имеет 1 уровень
+};
+
 let currentTab = 'basic';
 let levels = {
     basic: [],
@@ -24,19 +30,19 @@ async function loadAllLevels() {
     }
 }
 
-// Загрузка через RAW (без API)
+// Загрузка через RAW (с каунтерами)
 async function loadLevelsByType(type) {
     levels[type] = [];
-    let position = 1;
+    const count = LEVEL_COUNTS[type];
     
-    while (position <= 30) {
+    for (let position = 1; position <= count; position++) {
         try {
             // Проверяем level.txt
             const txtUrl = `${GITHUB_RAW}/levels/${type}/${position}/level.txt`;
             const txtResponse = await fetch(txtUrl);
             
             if (!txtResponse.ok) {
-                position++;
+                console.log(`❌ ${type} #${position}: level.txt не найден`);
                 continue;
             }
             
@@ -50,18 +56,16 @@ async function loadLevelsByType(type) {
                 levels[type].push({
                     position: position,
                     name: levelName.trim(),
-                    filename: 'level.json', // Оригинальное имя
-                    downloadUrl: jsonUrl,
-                    displayName: levelName.trim() // Для переименования при скачивании
+                    filename: 'level.json',
+                    downloadUrl: jsonUrl
                 });
                 console.log(`✅ ${type} #${position}: ${levelName.trim()}`);
+            } else {
+                console.log(`❌ ${type} #${position}: level.json не найден`);
             }
-            
-            position++;
             
         } catch (error) {
             console.log(`❌ Ошибка на ${type}/${position}`);
-            position++;
         }
     }
 }
@@ -85,7 +89,7 @@ function renderLevels() {
             <div class="level-card ${currentTab}" style="animation-delay: ${level.position * 0.05}s">
                 <div class="level-number">#${level.position}</div>
                 <div class="level-name">${escapeHtml(level.name)}</div>
-                <button class="download-btn" onclick="downloadLevel('${level.downloadUrl}', '${level.name}', '${level.filename}')">
+                <button class="download-btn" onclick="downloadLevel('${level.downloadUrl}', '${level.name}')">
                     Скачать файл уровня
                 </button>
             </div>
@@ -97,7 +101,7 @@ function renderLevels() {
 }
 
 // Скачивание уровня с переименованием
-async function downloadLevel(url, levelName, originalFilename) {
+async function downloadLevel(url, levelName) {
     try {
         const response = await fetch(url);
         
