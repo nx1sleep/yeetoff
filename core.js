@@ -3,8 +3,8 @@ const GITHUB_RAW = 'https://raw.githubusercontent.com/nx1sleep/yeetoff/main';
 
 // Каунтеры уровней
 const LEVEL_COUNTS = {
-    basic: 3,  // basic имеет 3 уровня
-    ill: 1      // ill имеет 1 уровень
+    basic: 3,
+    ill: 3
 };
 
 let currentTab = 'basic';
