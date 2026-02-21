@@ -259,7 +259,7 @@
         <div class="tab-switch">
             <button class="tab-btn basic active" onclick="switchTab('basic')">BASIC</button>
             <button class="tab-btn ill" onclick="switchTab('ill')">ILL</button>
-            <button class="refresh-btn" onclick="loadAllLevels()">🔄 Обновить</button>
+            <button class="refresh-btn" onclick="loadAllLevels()">Обновить</button>
         </div>
 
         <div id="levelsContainer">
@@ -302,7 +302,7 @@
                 renderLevels();
             } catch (error) {
                 console.error('Ошибка:', error);
-                container.innerHTML = '<div class="error">❌ Не удалось загрузить уровни</div>';
+                container.innerHTML = '<div class="error">Не удалось загрузить уровни</div>';
             }
         }
 
@@ -357,7 +357,7 @@
             const currentLevels = levels[currentTab];
             
             if (currentLevels.length === 0) {
-                container.innerHTML = '<div class="error">📭 Нет уровней в этой категории</div>';
+                container.innerHTML = '<div class="error">Нет уровней в этой категории</div>';
                 return;
             }
             
@@ -372,7 +372,7 @@
                         <div class="level-number">#${level.position}</div>
                         <div class="level-name">${escapeHtml(level.name)}</div>
                         <button class="download-btn" onclick="downloadLevel('${level.downloadUrl}', '${level.filename}')">
-                            📥 Скачать JSON
+                            Скачать файл уровня
                         </button>
                     </div>
                 `;
