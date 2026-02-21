@@ -1,4 +1,4 @@
-// Конфигурация - ТОЛЬКО RAW
+// Конфигурация
 const GITHUB_RAW = 'https://raw.githubusercontent.com/nx1sleep/yeetoff/main';
 
 let currentTab = 'basic';
@@ -24,59 +24,49 @@ async function loadAllLevels() {
     }
 }
 
-// Загрузка через RAW (без API)
+// Загрузка через RAW
 async function loadLevelsByType(type) {
     levels[type] = [];
     let position = 1;
     
-    while (position <= 30) { // Проверим первые 30 папок
+    while (position <= 30) {
         try {
-            // Пробуем скачать level.txt
+            // Проверяем level.txt
             const txtUrl = `${GITHUB_RAW}/levels/${type}/${position}/level.txt`;
             const txtResponse = await fetch(txtUrl);
             
-            if (txtResponse.ok) {
-                // Есть level.txt - значит папка существует
-                const levelName = await txtResponse.text();
+            if (!txtResponse.ok) {
+                position++;
+                continue;
+            }
+            
+            const levelName = await txtResponse.text();
+            
+            // ПОЛУЧАЕМ СПИСОК ФАЙЛОВ ЧЕРЕЗ API (временно, чтобы найти JSON)
+            const apiUrl = `https://api.github.com/repos/nx1sleep/yeetoff/contents/levels/${type}/${position}`;
+            const apiResponse = await fetch(apiUrl);
+            
+            if (apiResponse.ok) {
+                const files = await apiResponse.json();
+                // Берем ПЕРВЫЙ JSON файл
+                const jsonFile = files.find(f => f.name.endsWith('.json'));
                 
-                // Теперь ищем JSON файл (через проверку ссылок)
-                const jsonExtensions = ['.json']; // Можно добавить другие
-                
-                for (const ext of jsonExtensions) {
-                    // Пробуем стандартные имена
-                    const possibleNames = [
-                        `${type}_${position}${ext}`,
-                        `level${ext}`,
-                        `map${ext}`,
-                        `level_${position}${ext}`
-                    ];
-                    
-                    for (const name of possibleNames) {
-                        const jsonUrl = `${GITHUB_RAW}/levels/${type}/${position}/${name}`;
-                        const jsonResponse = await fetch(jsonUrl, { method: 'HEAD' });
-                        
-                        if (jsonResponse.ok) {
-                            levels[type].push({
-                                position: position,
-                                name: levelName.trim(),
-                                filename: name,
-                                downloadUrl: jsonUrl
-                            });
-                            console.log(`✅ ${type} #${position}: ${levelName.trim()} (${name})`);
-                            break;
-                        }
-                    }
-                    
-                    // Если нашли JSON, выходим из цикла расширений
-                    if (levels[type].some(l => l.position === position)) break;
+                if (jsonFile) {
+                    levels[type].push({
+                        position: position,
+                        name: levelName.trim(),
+                        filename: jsonFile.name,
+                        downloadUrl: jsonFile.download_url
+                    });
+                    console.log(`✅ ${type} #${position}: ${levelName.trim()} (${jsonFile.name})`);
                 }
             }
             
             position++;
             
         } catch (error) {
-            console.log(`❌ Ошибка на ${type}/${position}, останавливаемся`);
-            break;
+            console.log(`❌ Ошибка на ${type}/${position}`);
+            position++;
         }
     }
 }
